@@ -38,6 +38,6 @@ if __name__ == "__main__":
     shot_data = pd.read_csv('shot_data.csv')
 
     shot_data['closest_def_height'] = shot_data.apply(lambda row: get_height(row['closest_defender_id']), axis=1)
-    shot_data['closest_def_wingspan'] = shot_data.apply(lambda row: get_wingspan(row['closest_defender_id']), axis=1)
+    # shot_data['closest_def_wingspan'] = shot_data.apply(lambda row: get_wingspan(row['closest_defender_id']), axis=1)
     
     shot_data.to_csv('shot_data2.csv')
