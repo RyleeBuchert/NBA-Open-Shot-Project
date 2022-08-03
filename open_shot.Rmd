@@ -1,0 +1,20 @@
+---
+title: "Open Shot Project"
+author: "Rylee Buchert"
+date: '2022-08-03'
+output: 
+  html_document:
+    code_folding: "show"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## NBA Open Shot Project
+
+T
+
+```{r cars}
+summary(cars)
+```
