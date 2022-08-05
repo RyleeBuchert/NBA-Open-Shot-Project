@@ -2,9 +2,10 @@
 title: "Open Shot Project"
 author: "Rylee Buchert"
 date: '2022-08-03'
-output: 
+output:
+  pdf_document: default
   html_document:
-    code_folding: "show"
+    code_folding: show
 ---
 
 ```{r setup, include=FALSE}
@@ -19,6 +20,7 @@ Load tidyverse and the dataset
 library(tidyverse)
 library(modelr)
 library(nbastatR)
+library(ggplot2)
 shot_data <- read_csv('shot_data2.csv')
 
 ```
@@ -56,14 +58,35 @@ wingspan_data <- rbind(regression_data, na_data)
 
 # Convert defender distance to inches
 wingspan_data$closest_def_distance_in <- 12 * wingspan_data$closest_defender_distance
+
+# Add team codes from matchup
+wingspan_data <- wingspan_data %>%
+  mutate(team_name = if_else(nchar(matchup)==24, 
+                            if_else(location=="H", 
+                                    substr(matchup,22,24), 
+                                    substr(matchup,16,18)), 
+                            if_else(location=="H", 
+                                    substr(matchup,16,18), 
+                                    substr(matchup,24,26))),
+         opp_team_name = if_else(nchar(matchup)==24, 
+                            if_else(location=="H", 
+                                    substr(matchup,16,18), 
+                                    substr(matchup,22,24)), 
+                            if_else(location=="H", 
+                                    substr(matchup,24,26), 
+                                    substr(matchup,16,18)))) %>%
+  relocate(team_name, .after=location) %>%
+  relocate(opp_team_name, .after=team_name)
+
 ```
 
 Label open shots
 
 ```{r label-shots}
-# Add open shot based on defender wingspan and 
+# Add open shot based on closest defender wingspan and distance
 shot_data <- wingspan_data %>%
-  mutate(open_shot = ifelse(closest_def_distance_in > (closest_def_wingspan/2), 1, 0))
+  mutate(open_shot = ifelse(closest_def_distance_in > (closest_def_wingspan/2), 1, 0)) %>%
+  filter(!is.na(open_shot))
 ```
 
 
@@ -77,29 +100,79 @@ shot_data %>%
   summarise(count = n(), pct = n()/nrow(shot_data)*100)
 ```
 
+Add BBref game id for boxscore data
 
 ```{r}
-# Add team codes from matchup
+
+# Add team codes from matchup and for BBRef data
 shot_data <- shot_data %>%
-  mutate(home_team_short = if_else(nchar(matchup)==24, 
-                            if_else(location=="H", 
-                                    substr(matchup,22,24), 
-                                    substr(matchup,16,18)), 
-                            if_else(location=="H", 
-                                    substr(matchup,16,18), 
-                                    substr(matchup,24,26))),
-         away_team_short = if_else(nchar(matchup)==24, 
-                            if_else(location=="H", 
-                                    substr(matchup,16,18), 
-                                    substr(matchup,22,24)), 
-                            if_else(location=="H", 
-                                    substr(matchup,24,26), 
-                                    substr(matchup,16,18))))
+  mutate(home_team_short = if_else(location=="H", substr(matchup, 16, 18), substr(matchup, 22, 24)),
+         away_team_short = if_else(location=="H", substr(matchup, 24, 26), substr(matchup, 16, 18))) %>%
+  mutate(bbr_game_id = home_team_short) %>%
+  mutate(bbr_game_id = replace(bbr_game_id, bbr_game_id == 'BKN', 'BRK')) %>%
+  mutate(bbr_game_id = replace(bbr_game_id, bbr_game_id == 'PHX', 'PHO')) %>%
+  mutate(bbr_game_id = replace(bbr_game_id, bbr_game_id == 'CHA', 'CHO')) %>%
+  mutate(bbr_team_id = team_name) %>%
+  mutate(bbr_team_id = replace(bbr_team_id, bbr_team_id == 'NOP', 'NOH')) %>%
+  mutate(bbr_team_id = replace(bbr_team_id, bbr_team_id == 'BKN', 'NJN')) %>%
+  mutate(bbr_team_id = replace(bbr_team_id, bbr_team_id == 'PHX', 'PHO')) %>%
+  relocate(bbr_team_id, .after=team_name) %>%
+  mutate(bbr_opp_team_id = opp_team_name) %>%
+  mutate(bbr_opp_team_id = replace(bbr_opp_team_id, bbr_opp_team_id == 'NOP', 'NOH')) %>%
+  mutate(bbr_opp_team_id = replace(bbr_opp_team_id, bbr_opp_team_id == 'BKN', 'NJN')) %>%
+  mutate(bbr_opp_team_id = replace(bbr_opp_team_id, bbr_opp_team_id == 'PHX', 'PHO')) %>%
+  relocate(bbr_opp_team_id, .after=opp_team_name)
+
+# Add BBRef game id
+month_convert = c(
+  "JAN"="01",
+  "FEB"="02",
+  "MAR"="03",
+  "OCT"="10",
+  "NOV"="11",
+  "DEC"="12"
+)
+
+shot_data <- shot_data %>%
+  mutate(bbr_game_id = paste(substr(matchup, 9, 12), month_convert[substr(matchup, 0, 3)], substr(matchup, 5, 6), "0", bbr_game_id, sep="")) %>%
+  relocate(bbr_game_id, .after=game_id)
 
 ```
 
-Join with games data
+
 
 ```{r}
+# Get OKC Data
+okc_data <- shot_data %>%
+  filter(team_name == "OKC")
+
+boxscore_data <- read_csv("2015_games.csv") %>%
+  select(game_id, opp_team_id, fg, fga) %>%
+  mutate(fg_pc = fg/fga)
+
+```
+
+
+
+```{r}
+
+okc_summary <- okc_data %>%
+  group_by(bbr_game_id, bbr_opp_team_id) %>%
+  summarise(
+    shots_made = sum(fgm),
+    shots_attempted = n(),
+    fg_pct = shots_made/shots_attempted,
+    open_shots = sum(open_shot),
+    open_shot_pct = open_shots/shots_attempted
+  ) %>%
+  arrange(desc(open_shot_pct)) %>%
+  left_join(boxscore_data, by=c('bbr_game_id'='game_id', 'bbr_opp_team_id'='opp_team_id')) %>%
+  mutate(pct_shots = shots_attempted/fga,
+         predicted_open_shots = open_shots/pct_shots)
+
+```
+
+```{r}
+
 
 ```
