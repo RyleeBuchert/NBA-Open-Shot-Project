@@ -1,21 +1,15 @@
 ---
+title: "NBA Open Shot Project"
 author: "Rylee Buchert"
 date: '2022-08-03'
-output:
-  html_document:
-    code_folding: show
-  pdf_document: default
+output: html_document
 ---
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-## NBA Open Shot Project
-
-### Introductionfff
+### Introduction
 
 Predicted stats provided analysts a way to gauge player performance based on events that were more likely .
 
@@ -26,58 +20,131 @@ Any offensive scheme has the goal of generating shots with a high percentage of 
 
 The goal of this project is to isolate 'open' shots where a player is shooting without a defender immediately nearby. This metric can help when analyzing the ability of offenses go produce high-percentage shots and the strengh of defenses in preventing easy looks. Moreover, 
 
-Unfortunately, there is not a wide breadth of public data available to determine what shots have a contesting defender. The NBA uses an array of cameras and tracking software, known as SportsVU, to record game data, but this information is not generally accessible to the public. The good news is that one season's game tracking data is posted online, convinently posted on [Kaggle](https://www.kaggle.com/datasets/dansbecker/nba-shot-logs).
+Unfortunately, there is not a wide breadth of public data available to determine what shots have a contesting defender. The NBA uses an array of cameras and tracking software, known as SportsVU, to record game data, but this information is not generally accessible to the public. The good news is that one season's game tracking data is posted online, conveniently posted on [Kaggle](https://www.kaggle.com/datasets/dansbecker/nba-shot-logs).
 
 This dataset contains the records of over 100,000 shots taken during the 2014-15 NBA season, including information about where the shot was taken, game time, and who was the closest defender. Most importantly, each shot has a measure of how far the closest the closest defender was away from the shooter, providing a way to quantify if each shot had a contesting defender.
 
 ### What Counts as an "Open" Shot
 
+Although the concept of an open look makes sense abstractly, it is harder to quantitatively define for data labeling. Ideally, this would include every shot where the shooter is out of reach of the nearest defender. Yet, this idea can vary considerably depending on the defender and court positioning. This makes it sub-optimal to define a set "circle", say 3~5 feet around a shooter, that defines their open shot zone.
 
+Instead, I decided to label these shots based on the wingspan of the closest defender. A defender's wingspan allows me to roughly express an 'arm length' away, which I defined as the distance required for an uncontested look. According to this rule, every record where a shooter is more than half the closest defender's arm length away is an open shot, and the rest are contested. Although this definition is not perfect, it is a good starting point for investigating this idea with the data publicly available.
 
-###
+### Obtaining the Data
 
-TTT
+The first step is to load all of the required R packages and the dataset into the environment. For this project, I utilized the tidyverse, modelr, and ggplot2 R packages.
 
-Load tidyverse and the dataset
-
-```{r message=FALSE}
+```{r load-data-packages, message=FALSE}
 library(tidyverse)
 library(modelr)
 library(ggplot2)
-shot_data <- read_csv('shot_data2.csv')
+shot_data <- read_csv('shot_data.csv')
 
 ```
 
-Add python here for modifying the dataset
+Player wingspan data is not as readily available online as I initially thought it would be. I was only able to find one [website](https://www.nbasavant.com/) which contained wingspan data for the player IDs included in the dataset. Using Python and the BeautifulSoup package, I wrote a quick web scraping function to return the wingspan for a player when given their ID.
 
-```{r python}
+```{python add-wingspan, error=TRUE, include=TRUE, eval=FALSE}
+# Required packages
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+
+# Function to return wingspan from NBAsavant.com
+def get_wingspan(player_id):
+    # Scrape html from url
+    url = f"http://nbasavant.com/player.php?player_id={player_id}"
+    soup = BeautifulSoup(requests.get(url).content, 'html5lib')
+    
+    # Extract and return wingspan from data
+    try:
+        player_data = soup.find_all("div", {"id": "boxes"})
+        player_text = player_data[0].find("br").next
+        wingspan = float(player_text.split('Wingspan: ', 1)[1][:5])
+        return(wingspan)
+    except:
+        return('NA')
+
+# Load shot dataset and apply scraping function
+shot_data = pd.read_csv('shot_data.csv')
+shot_data['closest_def_wingspan'] = shot_data.apply(lambda row: get_wingspan(row['closest_defender_id']), axis=1)
+shot_data.to_csv('shot_data.csv')
+
+```
+
+Unfortunately, this only returned usable data for some of the players in the shot data.
+
+```{r analyse-shot-data}
+# Get data where wingspan is available
+available_data <- shot_data %>%
+  filter(!is.na(closest_def_wingspan))
+
+# Get dataset of 'na' values
+na_data <- shot_data %>%
+  filter(is.na(closest_def_wingspan))
+
+print(nrow(available_data) / nrow(shot_data))
+```
+
+Only a little over two-thirds of the records contain wingspan data after scraping. To fill in the remaining data, I decided to make predictions for player wingspans based on their height. Data for player heights are more readily available online and can be used in a regression to predict wingspans with fairly high accuracy. While this method does not give perfect information about each defender's wingspan, the predicted values still provide useful data relative to each defender and allow me to use the entire dataset.
+
+To obtain player heights, I wrote another BeautifulSoup scraping function which scraped height from [NBA's player pages](https://www.nba.com/players). I also collected each player's position in the function for use later in this analysis. This code snippet produces a player information CSV file which then joined with the shot data after creation.
+
+```{python add-height-pos, error=TRUE, include=TRUE, eval=FALSE}
+# Function to scrape player's height and position
+def get_height_position(player_id):
+    # Scrape html from url
+    url = f"https://www.nba.com/player/{player_id}"
+    soup = BeautifulSoup(requests.get(url).content, 'html5lib')
+
+    # Get height from data
+    try:
+        height_data = soup.find_all("p", {"class": "PlayerSummary_playerInfoValue__mSfou"})
+        height_text = height_data[0].contents[0].split(' ')[0].split("\'")
+        height = (int(height_text[0])*12) + int(height_text[1].replace("\"", ""))
+    except:
+        height = 'NA'
+
+    # Get position from data
+    try:
+        position_data = soup.find_all("p", {"class": "t11 md:t2"})
+        position_text = position_data[0].contents[0].split('|')
+        position = position_text[2].strip(" ")
+    except:
+        position = 'NA'
+
+    return (height, position)
+
+# Load shot data and get all unique player id's 
+shot_data = pd.read_csv('shot_data.csv')
+shooter_list = shot_data.player_id.unique().tolist()
+defender_list = shot_data.closest_defender_id.unique().tolist()
+player_df = pd.DataFrame(set(shooter_list + defender_list)).rename(columns={0: 'player_id'})
+
+# Create cols for height/position and save player info dataframe
+player_df['height'] = player_df.apply(lambda row: get_height_position(row['player_id'])[0], axis=1)
+player_df['position'] = player_df.apply(lambda row: get_height_position(row['player_id'])[1], axis=1)
+player_df.to_csv('player_info.csv')
+
+```
+
+```{r join-player-data}
+player_info <- read_csv('player_info.csv')
+shot_data <- shot_data %>%
+  left_join(player_info, by="player_id")
 
 ```
 
 Regression for wingspan
 
 ```{r predicting-wingspan}
-# Get rid of unneeded cols and 
-wingspan_data <- shot_data %>%
-  select(-game_clock, -shot_clock, -dribbles, -touch_time)
-
-# Create regression dataset of data with wingspan available
-regression_data <- wingspan_data %>%
-  filter(!is.na(closest_def_wingspan))
-
-# Create dataset of 'na' values
-na_data <- wingspan_data %>%
-  filter(is.na(closest_def_wingspan))
-
-print(nrow(regression_data) / nrow(shot_data))
-
 # Run regression and predict 'na' wingspan values
-wingspan_reg <- lm(closest_def_wingspan~closest_def_height, data=regression_data)
+wingspan_reg <- lm(closest_def_wingspan~closest_def_height, data=available_data)
 na_data <- add_predictions(na_data, wingspan_reg, var="closest_def_wingspan", type=NULL)
 na_data$closest_def_wingspan <- round(na_data$closest_def_wingspan, digit=2)
 
 # Combine datasets
-wingspan_data <- rbind(regression_data, na_data)
+wingspan_data <- rbind(available_data, na_data)
 
 # Convert defender distance to inches
 wingspan_data$closest_def_distance_in <- 12 * wingspan_data$closest_defender_distance
@@ -101,6 +168,10 @@ wingspan_data <- wingspan_data %>%
   relocate(team_name, .after=location) %>%
   relocate(opp_team_name, .after=team_name)
 
+# Drop unneeded columns
+wingspan_data <- wingspan_data %>%
+  select(-game_clock, -shot_clock, -dribbles, -touch_time)
+
 ```
 
 Label open shots
@@ -108,7 +179,7 @@ Label open shots
 ```{r label-shots}
 # Add open shot based on closest defender wingspan and distance
 shot_data <- wingspan_data %>%
-  mutate(open_shot = ifelse(closest_def_distance_in > (closest_def_wingspan/2), 1, 0)) %>%
+  mutate(open_shot = ifelse(closest_def_distance_in > (closest_def_wingspan / 2), 1, 0)) %>%
   filter(!is.na(open_shot))
 ```
 
