@@ -84,7 +84,7 @@ if __name__ == "__main__":
     player_df['height'] = player_df.apply(lambda row: get_height_position(row['player_id'])[0], axis=1)
     player_df['position'] = player_df.apply(lambda row: get_height_position(row['player_id'])[1], axis=1)
 
-    player_df.to_csv('player_info.csv')
+    player_df.to_csv('2015_player_info.csv')
 
     # shot_data['closest_def_height'] = shot_data.apply(lambda row: get_height(row['closest_defender_id']), axis=1)
     # shot_data['closest_def_wingspan'] = shot_data.apply(lambda row: get_wingspan(row['closest_defender_id']), axis=1)
