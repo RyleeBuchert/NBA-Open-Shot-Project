@@ -129,7 +129,7 @@ player_df.to_csv('player_info.csv')
 ```
 
 ```{r join-player-data}
-player_info <- read_csv('player_info.csv')
+player_info <- read_csv('2015_player_info.csv')
 shot_data <- shot_data %>%
   left_join(player_info, by="player_id")
 
@@ -398,4 +398,55 @@ shot_data %>%
 ```
 ```{r}
 
+```
+
+
+```{r}
+team_season <- read_csv("2015_team_season.csv")
+
+offensive_rating <- team_season%>%
+  select(Tm, win_pct, ORtg) %>%
+  rename(bbr_team_id = Tm)
+
+os_pct_offense <- league_offense_summary %>%
+  group_by(bbr_team_id) %>%
+  summarise(
+    open_shot_pct = mean(open_shot_pct)
+  ) %>%
+  arrange(desc(open_shot_pct)) %>%
+  left_join(offensive_rating, by="bbr_team_id")
+
+ggplot(data=os_pct_offense, mapping=aes(x=ORtg, y=open_shot_pct, color=win_pct)) + 
+  geom_point(size=2) + 
+  geom_smooth(method = lm) +  
+  geom_text_repel(aes(label=bbr_team_id)) + 
+  labs(x = "Points Scored per 100 Possessions", y = "% of Shots Open on Offense")
+
+```
+
+
+```{r}
+defensive_rating <- team_season%>%
+  select(Tm, win_pct, DRtg) %>%
+  rename(bbr_team_id = Tm)
+
+
+os_pct_defense <- league_defense_summary %>%
+  group_by(team) %>%
+  summarise(
+    opp_open_shot_pct = mean(opp_open_shot_pct)
+  ) %>%
+  arrange(desc(opp_open_shot_pct)) %>%
+  left_join(defensive_rating, by=c("team"="bbr_team_id"))
+```
+
+
+```{r}
+library(ggrepel)
+
+ggplot(data=os_pct_defense, mapping=aes(x=DRtg, y=opp_open_shot_pct, color=win_pct)) + 
+  geom_point(size=2) + 
+  geom_smooth(method = lm) +  
+  geom_text_repel(aes(label=team)) + 
+  labs(x = "Points Allowed per 100 Possessions", y = "% of Shots Open on Defense")
 ```
