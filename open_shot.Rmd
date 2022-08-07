@@ -1,25 +1,48 @@
 ---
-title: "Open Shot Project"
 author: "Rylee Buchert"
 date: '2022-08-03'
 output:
-  pdf_document: default
   html_document:
     code_folding: show
+  pdf_document: default
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
 ## NBA Open Shot Project
+
+### Introductionfff
+
+Predicted stats provided analysts a way to gauge player performance based on events that were more likely .
+
+The rise of "three true outcomes" baseball 
+
+
+Any offensive scheme has the goal of generating shots with a high percentage of scoring. 
+
+The goal of this project is to isolate 'open' shots where a player is shooting without a defender immediately nearby. This metric can help when analyzing the ability of offenses go produce high-percentage shots and the strengh of defenses in preventing easy looks. Moreover, 
+
+Unfortunately, there is not a wide breadth of public data available to determine what shots have a contesting defender. The NBA uses an array of cameras and tracking software, known as SportsVU, to record game data, but this information is not generally accessible to the public. The good news is that one season's game tracking data is posted online, convinently posted on [Kaggle](https://www.kaggle.com/datasets/dansbecker/nba-shot-logs).
+
+This dataset contains the records of over 100,000 shots taken during the 2014-15 NBA season, including information about where the shot was taken, game time, and who was the closest defender. Most importantly, each shot has a measure of how far the closest the closest defender was away from the shooter, providing a way to quantify if each shot had a contesting defender.
+
+### What Counts as an "Open" Shot
+
+
+
+###
+
+TTT
 
 Load tidyverse and the dataset
 
-```{r load-packages-data echo=FALSE}
+```{r message=FALSE}
 library(tidyverse)
 library(modelr)
-library(nbastatR)
 library(ggplot2)
 shot_data <- read_csv('shot_data2.csv')
 
@@ -148,7 +171,7 @@ okc_data <- shot_data %>%
 
 boxscore_data <- read_csv("2015_games.csv") %>%
   select(game_id, opp_team_id, fg, fga) %>%
-  mutate(fg_pc = fg/fga)
+  rename(fga_total = fga, fg_total = fg)
 
 ```
 
@@ -167,12 +190,141 @@ okc_summary <- okc_data %>%
   ) %>%
   arrange(desc(open_shot_pct)) %>%
   left_join(boxscore_data, by=c('bbr_game_id'='game_id', 'bbr_opp_team_id'='opp_team_id')) %>%
-  mutate(pct_shots = shots_attempted/fga,
-         predicted_open_shots = open_shots/pct_shots)
+  mutate(predicted_open_shots = open_shots/(shots_attempted/fga_total))
 
 ```
 
 ```{r}
 
+# Get shot data for all games in dataset
+league_offense_summary <- shot_data %>%
+  group_by(bbr_team_id, bbr_game_id, bbr_opp_team_id) %>%
+  summarise(
+    fg = sum(fgm),
+    fga = n(),
+    fg_pct = fg / fga,
+    open_shots = sum(open_shot),
+    open_shot_pct = open_shots / fga
+  ) %>%
+  left_join(boxscore_data, by=c('bbr_game_id'='game_id', 'bbr_opp_team_id'='opp_team_id')) %>%
+  mutate(pred_open_shots = open_shots/(fga/fga_total))
+
+```
+
+```{r}
+
+# Highest open shot percentage
+league_offense_summary %>%
+  group_by(bbr_team_id) %>%
+  summarise(
+    open_shot_pct = mean(open_shot_pct)
+  ) %>%
+  arrange(desc(open_shot_pct))
+
+```
+
+```{r}
+
+# Most predicted open shots per game
+league_offense_summary %>%
+  group_by(bbr_team_id) %>%
+  summarise(
+    open_shots_pg = mean(pred_open_shots)
+  ) %>%
+  arrange(desc(open_shots_pg))
+
+```
+
+```{r}
+
+# Get defensive summary for all games
+league_defense_summary <- shot_data %>%
+  group_by(bbr_opp_team_id, bbr_game_id, bbr_team_id) %>%
+  summarise(
+    opp_fg = sum(fgm),
+    opp_fga = n(),
+    opp_fg_pct = opp_fg / opp_fga,
+    opp_open_shots = sum(open_shot),
+    opp_open_shot_pct = opp_open_shots / opp_fga
+  ) %>%
+  left_join(boxscore_data, by=c('bbr_game_id'='game_id', 'bbr_opp_team_id'='opp_team_id')) %>%
+  mutate(pred_opp_open_shots = opp_open_shots/(opp_fga/fga_total)) %>%
+  rename(team = bbr_opp_team_id, opp_team = bbr_team_id)
+  
+```
+```{r}
+
+# Get defenses with the fewest percent of open shots allowed
+league_defense_summary %>%
+  group_by(team) %>%
+  summarise(
+    opp_open_shot_pct = mean(opp_open_shot_pct)
+  ) %>%
+  arrange(opp_open_shot_pct)
+
+
+```
+
+```{r}
+
+# Get defenses with the fewest open shots allowed per game
+league_defense_summary %>%
+  group_by(team) %>%
+  summarise(
+    opp_open_shot_pg = mean(pred_opp_open_shots)
+  ) %>%
+  arrange(opp_open_shot_pg)
+
+```
+```{r}
+
+# Get open shots/percentages for individual players
+shooter_summary <- shot_data %>%
+  group_by(player_id, player_name) %>%
+  summarise(
+    fg = sum(fgm),
+    fga = n(),
+    fg_pct = fg / fga,
+    open_shots = sum(open_shot),
+    open_shot_pct = open_shots / fga
+  ) %>%
+  arrange(desc(open_shots))
+
+
+```
+
+```{r}
+
+# Best shooters when uncontested
+shot_data %>%
+  filter(open_shot == 1) %>%
+  group_by(player_id, player_name) %>%
+  summarise(
+    fg = sum(fgm),
+    fga = n(),
+    open_fg_pct = fg / fga
+  ) %>%
+  filter(fga >= 50) %>%
+  arrange(desc(open_fg_pct))
+
+```
+
+
+```{r}
+
+# Best shooters when contested
+shot_data %>%
+  filter(open_shot == 0) %>%
+  group_by(player_id, player_name) %>%
+  summarise(
+    fg = sum(fgm),
+    fga = n(),
+    open_fg_pct = fg / fga
+  ) %>%
+  filter(fga >= 50) %>%
+  arrange(desc(open_fg_pct))
+
+```
+```{r}
 
 ```
