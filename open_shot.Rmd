@@ -38,6 +38,7 @@ The first step is to load all of the required R packages and the dataset into th
 library(tidyverse)
 library(modelr)
 library(ggplot2)
+library(ggrepel)
 shot_data <- read_csv('shot_data.csv')
 
 ```
@@ -236,32 +237,10 @@ shot_data <- shot_data %>%
 
 
 ```{r}
-# Get OKC Data
-okc_data <- shot_data %>%
-  filter(team_name == "OKC")
-
+# Get boxscore data
 boxscore_data <- read_csv("2015_games.csv") %>%
   select(game_id, opp_team_id, fg, fga) %>%
   rename(fga_total = fga, fg_total = fg)
-
-```
-
-
-
-```{r}
-
-okc_summary <- okc_data %>%
-  group_by(bbr_game_id, bbr_opp_team_id) %>%
-  summarise(
-    shots_made = sum(fgm),
-    shots_attempted = n(),
-    fg_pct = shots_made/shots_attempted,
-    open_shots = sum(open_shot),
-    open_shot_pct = open_shots/shots_attempted
-  ) %>%
-  arrange(desc(open_shot_pct)) %>%
-  left_join(boxscore_data, by=c('bbr_game_id'='game_id', 'bbr_opp_team_id'='opp_team_id')) %>%
-  mutate(predicted_open_shots = open_shots/(shots_attempted/fga_total))
 
 ```
 
@@ -415,13 +394,17 @@ os_pct_offense <- league_offense_summary %>%
   ) %>%
   arrange(desc(open_shot_pct)) %>%
   left_join(offensive_rating, by="bbr_team_id")
+```
 
+```{r}
 ggplot(data=os_pct_offense, mapping=aes(x=ORtg, y=open_shot_pct, color=win_pct)) + 
   geom_point(size=2) + 
   geom_smooth(method = lm) +  
   geom_text_repel(aes(label=bbr_team_id)) + 
-  labs(x = "Points Scored per 100 Possessions", y = "% of Shots Open on Offense")
-
+  labs(x = "Points Scored per 100 Possessions", 
+       y = "% of Shots Open on Offense",
+       color = "Win %") + 
+  scale_color_gradient(low = "blue", high = "red")
 ```
 
 
@@ -442,11 +425,12 @@ os_pct_defense <- league_defense_summary %>%
 
 
 ```{r}
-library(ggrepel)
-
 ggplot(data=os_pct_defense, mapping=aes(x=DRtg, y=opp_open_shot_pct, color=win_pct)) + 
   geom_point(size=2) + 
   geom_smooth(method = lm) +  
   geom_text_repel(aes(label=team)) + 
-  labs(x = "Points Allowed per 100 Possessions", y = "% of Shots Open on Defense")
+  labs(x = "Points Allowed per 100 Possessions", 
+       y = "% of Shots Open on Defense",
+       color = "Win %") + 
+  scale_color_gradient(low = "blue", high = "red")
 ```
