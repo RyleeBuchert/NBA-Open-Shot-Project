@@ -11,6 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Introduction
 
+New ways of ... have led to a proliferation in the 'three true outcomes.' 
+
 Predicted stats provided analysts a way to gauge player performance based on events that were more likely .
 
 The rise of "three true outcomes" baseball 
@@ -434,3 +436,4 @@ ggplot(data=os_pct_defense, mapping=aes(x=DRtg, y=opp_open_shot_pct, color=win_p
        color = "Win %") + 
   scale_color_gradient(low = "blue", high = "red")
 ```
+
