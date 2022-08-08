@@ -11,12 +11,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Introduction
 
-New ways of ... have led to a proliferation in the 'three true outcomes.' 
+The MLB has seen a considerable rise in so-called "three true outcomes" baseball due in large part to modern analytics. The heavy focus on advanced statistical metrics such as barrels, launch angle, and spin rate have led to a proliferation in home runs and strikeouts across the league. These new methods of characterizing the game provide analysts a way to evaluate players based on attributes likely to produce good outcomes without relying solely on outcome-based statistics. 
 
-Predicted stats provided analysts a way to gauge player performance based on events that were more likely .
+I have always been intrigued by the potential application of this idea in NBA stats. Under current practices, every event is treated equal in the scorebook. A rebound with no defenders nearby is weighed the same as a contested board. This beautiful pass by Josh Giddey to find a wide open Tre Mann is valued the same as KD handing Kyrie the ball before an unbelivable contested 3.
 
-The rise of "three true outcomes" baseball 
+<center>
+![](img/giddey_assist.gif){width=45%} ![](img/kyrie_3.gif){width=45%}
+</center>
 
+A great pass to an open three who misses  . Players can be making great pass
+
+Not all hits are created equal. The idea of tracking barrels/launch angle 
+
+Not all shots are created equal
 
 Any offensive scheme has the goal of generating shots with a high percentage of scoring. 
 
