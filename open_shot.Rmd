@@ -1,8 +1,11 @@
 ---
-title: "NBA Open Shot Project"
+title: "**NBA Open Shot Project**"
 author: "Rylee Buchert"
-date: '2022-08-03'
-output: html_document
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output: 
+  html_document:
+    theme: spacelab
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -176,7 +179,7 @@ rm(available_data, na_data)
 
 The final step in preparing the dataset is to add some more fields and clean up the data for later analysis. In this chunk, I converted defender distance to inches, added team codes for home/away, dropped unneeded columns, and added a game id that matches Basketball-References's data for joining purposes later in this report.
 
-```{r clean-data}
+```{r clean-data, class.source = 'fold-hide'}
 
 # Convert defender distance to inches
 shot_data$closest_def_distance_in <- 12 * shot_data$closest_defender_distance
@@ -252,19 +255,19 @@ shot_data <- shot_data %>%
 
 ### Investigating the Data
 
-The shot dataset now includes over 125,000 individual shots from the 2014-15 season. According to Sports-Reference's [stathead](https://stathead.com/all/), there were just over 200,000 total shots taken during that season, meaning we have roughly 60% of the data available. This sample is more than enough for this report even though we won't have perfect information from that season. 
+The shot dataset now includes over 125,000 individual shots from the 2014-15 season. According to Sports-Reference's [Stathead](https://stathead.com/all/), there were just over 200,000 total shots taken during that season, meaning we have roughly 60% of the data available. This sample is more than enough for this report even though we won't have perfect information from that season. 
 
 Looking at the now labelled data, about 46% of shots are contested while 54% are considered open. This is a great split for looking at performance trends for team offenses/defenses and individual players.
 
 ```{r summarize-shot-data}
 
 # Get counts for open/contested shot
-shot_data %>%
+knitr::kable(shot_data %>%
   group_by(open_shot) %>%
   summarise(
     count = n(),
     pct = n()/nrow(shot_data)*100
-  )
+  ), caption = "Open/Contested Shot Counts")
 
 ```
 
@@ -303,12 +306,12 @@ Using the summary table I can produce some statistics by team offenses. The foll
 ```{r offense-os-pct}
 
 # Highest open shot percentage
-league_offense_summary %>%
+knitr::kable(league_offense_summary %>%
   group_by(bbr_team_id) %>%
   summarise(
     open_shot_pct = mean(open_shot_pct)
   ) %>%
-  arrange(desc(open_shot_pct))
+  arrange(desc(open_shot_pct)))
 
 ```
 
