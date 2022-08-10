@@ -6,13 +6,16 @@ output:
   html_document:
     theme: spacelab
     df_print: paged
+    toc: true
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-### Introduction
+## Introduction
+
+All data and code for this project can be found on my [GitHub](https://github.com/RyleeBuchert/NBA-Open-Shot-Project).
 
 The MLB has seen a considerable rise in the so-called "three true outcomes" due in large part to modern analytics. The heavy focus on advanced statistical metrics such as barrels, launch angle, and spin rate have led to a proliferation in home runs and strikeouts across the league. These new methods of characterizing the game provide analysts a way to evaluate players based on attributes likely to produce good results without relying solely on outcome-based statistics. 
 
@@ -30,20 +33,21 @@ I believe this concept has the most value in finding the best passers and reboun
 
 This dataset contains the records of over 100,000 shots taken during the 2014-15 NBA season, including information about where the shot was taken, game time, and who was the closest defender. Most importantly, each shot has a measure of how far the closest the closest defender was away from the shooter, providing a way to quantify if each shot had a contesting defender. Although there is no way to analyze assists/rebounds with this dataset, looking at shots still produces some interesting results and provides a good starting point for investigating this concept.
 
-### What Qualifies as an "Open" Shot
+### What's an "Open" Shot?
 
 Although the concept of an open look makes sense abstractly, it is harder to quantitatively define for data labeling. Ideally, this would include every shot where the shooter is out of reach of the nearest defender. Yet, this idea can vary considerably depending on the defender and court positioning. This makes it sub-optimal to determine a set "circle", say 3~5 feet around a shooter, that defines their open shot zone.
 
 Instead, I decided to label these shots based on the wingspan of the closest defender. A defender's wingspan allows me to roughly express an 'arm length' away, which I define as the distance required for an uncontested look. According to this rule, every record where a shooter is more than half the closest defender's arm length away is an open shot, and the rest are contested. Although this definition is not perfect, it is a good kickoff point for investigating this idea with the data publicly available.
 
-### Obtaining the Data
+## Obtaining the Data
 
-The first step is to load all of the required R packages into the environment. For this project, I utilized the tidyverse, modelr, and ggplot2 R packages.
+The first step is to load all of the required R packages into the environment. For this project, I utilized the tidyverse, modelr, ggplot2, and kableExtra R packages.
 
 ```{r load-data-packages, message=FALSE}
 library(tidyverse)
 library(modelr)
 library(ggplot2)
+library(kableExtra)
 ```
 
 Player wingspan data is not as readily available online as I initially thought it would be. I was only able to find one [website](https://www.nbasavant.com/) which contained wingspan data for the player IDs included in the dataset. Using Python and the BeautifulSoup package, I wrote a quick web scraping function to return the wingspan for a player when given their ID.
@@ -177,9 +181,9 @@ rm(available_data, na_data)
 
 ```
 
-The final step in preparing the dataset is to add some more fields and clean up the data for later analysis. In this chunk, I converted defender distance to inches, added team codes for home/away, dropped unneeded columns, and added a game id that matches Basketball-References's data for joining purposes later in this report.
+The final step in preparing the dataset is to add some more fields and clean up the data for later analysis. This is not very relevant to the report so I did not include the code in here. I convert defender distance to inches, add team codes for home/away, drop a few unneeded column, and add a game id that matches Basketball-Reference's data for merging purposes later in this report.
 
-```{r clean-data, class.source = 'fold-hide'}
+```{r clean-data, echo=FALSE}
 
 # Convert defender distance to inches
 shot_data$closest_def_distance_in <- 12 * shot_data$closest_defender_distance
@@ -242,6 +246,8 @@ shot_data <- shot_data %>%
 
 ```
 
+### Adding the "Open" Dummy
+
 With the dataset fully prepared, it is time to add the important column: open_shot. This can be created by mutating the dataset with a dummy variable that takes a value of 1 when a shooter is more than half the wingspan of the closest defender away, and 0 otherwise.
 
 ```{r label-shots}
@@ -253,7 +259,7 @@ shot_data <- shot_data %>%
 
 ```
 
-### Investigating the Data
+## Investigating the Data
 
 The shot dataset now includes over 125,000 individual shots from the 2014-15 season. According to Sports-Reference's [Stathead](https://stathead.com/all/), there were just over 200,000 total shots taken during that season, meaning we have roughly 60% of the data available. This sample is more than enough for this report even though we won't have perfect information from that season. 
 
@@ -262,14 +268,16 @@ Looking at the now labelled data, about 46% of shots are contested while 54% are
 ```{r summarize-shot-data}
 
 # Get counts for open/contested shot
-knitr::kable(shot_data %>%
+shot_data %>%
   group_by(open_shot) %>%
   summarise(
     count = n(),
     pct = n()/nrow(shot_data)*100
-  ), caption = "Open/Contested Shot Counts")
+  )
 
 ```
+
+### Team Offense {.tabset}
 
 First I'm going to look at team statistics to examine how open shots correlate with offensive/defensive performance. Since the shot data only includes a portion of the total shots from the 2015 season, it's difficult to determine per game stat totals. Using Stathead, I collected the total number of field goals attempted by each team for all games during the season. Knowing the number of shots attempted allows me to normalize any stats created and obtain total stats per game.
 
@@ -303,19 +311,23 @@ league_offense_summary <- shot_data %>%
 
 Using the summary table I can produce some statistics by team offenses. The following table highlights the teams with the highest number of shots being uncontested
 
+Instead of using percentages, we can also compute the teams with the most open looks per game.
+
+#### % of Shots Open
+
 ```{r offense-os-pct}
 
 # Highest open shot percentage
-knitr::kable(league_offense_summary %>%
+league_offense_summary %>%
   group_by(bbr_team_id) %>%
   summarise(
     open_shot_pct = mean(open_shot_pct)
   ) %>%
-  arrange(desc(open_shot_pct)))
+  arrange(desc(open_shot_pct))
 
 ```
 
-Instead of using percentages, we can also compute the teams with the most open looks per game.
+#### Open Shots Per Game
 
 ```{r offense-os-pg}
 
@@ -328,6 +340,8 @@ league_offense_summary %>%
   arrange(desc(open_shots_pg))
 
 ```
+
+### {.unlisted .unnumbered}
 
 These stats are interesting to consider but don't explain much about how open looks contribute to offensive success. Using some more data from Stathead, the following graph shows the relationship between open shot percentage and offensive rating. 
 
@@ -362,6 +376,8 @@ ggplot(data=os_pct_offense, mapping=aes(x=ORtg, y=open_shot_pct, color=eFG)) +
 
 This graph shows that, generally, teams with a higher percent of open looks score more efficiently. This relationship is not extraordinarily strong though; only 6 of the top 12 teams in terms of open shot percentage rank in the top 12 of offensive rating. Even though team offenses may generate uncontested shots at an efficient rate, that does not translate to ORtg if they can't make the shots. A good example of this is the New York Knicks. Despite ranking 7th in open shot percentage, the Knicks ranked 29th in offensive rating. Their very low field goal rate makes it hard to score despite having many high-percentage shot opportunities.
 
+### Team Defense {.tabset}
+
 Similar to team offense, I computed these stats for defenses as well. 
 
 ```{r defense-summary, message=FALSE}
@@ -384,6 +400,10 @@ league_defense_summary <- shot_data %>%
 
 The following table shows the defenses that allowed the fewest percent of open shots during the season.
 
+And this table shows the defenses who allowed the fewest number of open shots a game.
+
+#### Opp. % of Open Shots
+
 ```{r defense-os-pct}
 
 # Get defenses with the fewest percent of open shots allowed
@@ -396,7 +416,7 @@ league_defense_summary %>%
 
 ```
 
-And this table shows the defenses who allowed the fewest number of open shots a game.
+#### Opp. Open Shots Per Game
 
 ```{r defense-os-pg}
 
@@ -409,6 +429,8 @@ league_defense_summary %>%
   arrange(opp_open_shot_pg)
 
 ```
+
+### {.unlisted .unnumbered}
 
 Plotting this data against team defensive rating and opponent eFG%, a stronger relationship is revealed.
 
@@ -442,14 +464,15 @@ ggplot(data=os_pct_defense, mapping=aes(x=DRtg, y=opp_open_shot_pct, color=opp_e
 
 Opposed to the plot from above, open shot percentage allowed is significantly more correlated to defensive rating. 9 of the top 12 open shot percentage defenses ranked in the top 12 of defensive rating. This highlights how defensive structures which prevent easy looks correlate strongly to success in preventing scoring. 
 
+### Individual Players {.tabset}
 
+To finish out this report I'm going to take a look at some stats for individual players. In the following chunk I generate a summary table with a row for each player in the shot dataset. This table includes each players field goals made/attempted, the total number of open shots, and their percent of total field goals that were uncontested.
 
-
-```{r shooting-summary}
+```{r shooting-summary, message=FALSE}
 
 # Get open shots/percentages for individual players
 shooter_summary <- shot_data %>%
-  group_by(player_id, player_name) %>%
+  group_by(player_name, team_name, player_position) %>%
   summarise(
     fg = sum(fgm),
     fga = n(),
@@ -457,18 +480,78 @@ shooter_summary <- shot_data %>%
     open_shots = sum(open_shot),
     open_shot_pct = open_shots / fga
   ) %>%
-  arrange(desc(open_shots))
-
-
+  arrange(desc(open_shots)) %>%
+  rename(pct_shots_open = open_shot_pct)
 ```
 
+This summary table can be used to find the players with the most total open shots in the league and those with the highest percent of open shots. The table shows the top players for both of those stats (descending) and has tabs to view for each position. These results are not particularly useful but do highlight the players who tend to see open looks most often. 
 
-```{r shooting-uncontested}
+#### Total Open Shots {.tabset}
 
-# Best shooters when uncontested
-shot_data %>%
-  filter(open_shot == 1) %>%
-  group_by(player_id, player_name) %>%
+```{r, echo=FALSE, message=FALSE, results='asis'}
+# Output tables for each position type
+cat('\n#####', 'All Players', '\n')
+shooter_summary %>%
+  arrange(desc(open_shots))
+cat('\n')
+
+cat('\n#####', 'Guard', '\n')
+shooter_summary %>%
+  filter(player_position %in% c('Guard', 'Forward-Guard', 'Guard-Forward')) %>%
+  arrange(desc(open_shots))
+cat('\n')
+
+cat('\n#####', 'Forward', '\n')
+shooter_summary %>%
+  filter(player_position %in% c('Forward', 'Forward-Guard', 'Guard-Forward')) %>%
+  arrange(desc(open_shots))
+cat('\n')
+
+cat('\n#####', 'Center', '\n')
+shooter_summary %>%
+  filter(player_position %in% c('Center', 'Forward-Center', 'Center-Forward')) %>%
+  arrange(desc(open_shots))
+cat('\n')
+```
+
+#### % of Shots Open {.tabset}
+
+```{r, echo=FALSE, message=FALSE, results='asis'}
+# Output tables for each position type
+cat('\n#####', 'All Players', '\n')
+shooter_summary %>%
+  arrange(desc(pct_shots_open))
+cat('\n')
+
+cat('\n#####', 'Guard', '\n')
+shooter_summary %>%
+  filter(player_position %in% c('Guard', 'Forward-Guard', 'Guard-Forward')) %>%
+  arrange(desc(pct_shots_open))
+cat('\n')
+
+cat('\n#####', 'Forward', '\n')
+shooter_summary %>%
+  filter(player_position %in% c('Forward', 'Forward-Guard', 'Guard-Forward')) %>%
+  arrange(desc(pct_shots_open))
+cat('\n')
+
+cat('\n#####', 'Center', '\n')
+shooter_summary %>%
+  filter(player_position %in% c('Center', 'Forward-Center', 'Center-Forward')) %>%
+  arrange(desc(pct_shots_open))
+cat('\n')
+```
+
+### Open/Contested FG% {.tabset}
+
+The more helpful interpretation from this data comes from a player's field goal percent in both open and contested scenarios. Knowing which players shoot significantly better when open can help guide offensive play making to put them in those situations. For some players there's over a 15% difference in their field goal percentage in open looks compared to contested situations. Offenses could lose out on many points if they do not structure their plays in a way that takes advantage of this. Moreover, if certain players shoot efficiently in both open and contested situations, then it is less important to design plays around getting them space. The following chunk constructs summary tables for all players and calculates their FG% in both cases, this is then used to construct the leaderboard.
+
+```{r shooting-uncontested, message=FALSE, warning=FALSE, results='asis'}
+
+# Best shooters when open
+best_uncontested <- shot_data %>%
+  filter(open_shot == 1, !is.na(player_position)) %>%
+  group_by(player_name, team_name, player_position) %>%
   summarise(
     fg = sum(fgm),
     fga = n(),
@@ -476,24 +559,94 @@ shot_data %>%
   ) %>%
   filter(fga >= 50) %>%
   arrange(desc(open_fg_pct))
-
-```
-
-
-```{r shooting-contested}
 
 # Best shooters when contested
-shot_data %>%
-  filter(open_shot == 0) %>%
-  group_by(player_id, player_name) %>%
+best_contested <- shot_data %>%
+  filter(open_shot == 0, !is.na(player_position)) %>%
+  group_by(player_name, team_name, player_position) %>%
   summarise(
     fg = sum(fgm),
     fga = n(),
-    open_fg_pct = fg / fga
+    contested_fg_pct = fg / fga
   ) %>%
   filter(fga >= 50) %>%
-  arrange(desc(open_fg_pct))
+  arrange(desc(contested_fg_pct))
 
 ```
 
-Add by position
+This table shows the top 25 players in field goal percentage in both open and contested spots. The table also includes the FG% for the opposite situation and the difference between the two. The most efficient shooters on this list all play in the backcourt so I included tabs for specific positions as well. Additionally, I included a "difference" tab which sorts the table by the biggest difference in Open-Contested FG%. Unfortunately, a few of the top players do not have enough records to count for Open FG% so those just appear as 'NA' values in the table.
+
+```{r, echo=FALSE, message=FALSE, results='asis'}
+pos_list <- list(
+  as.list(unique(best_uncontested$player_position)),
+  list('Guard', 'Forward-Guard', 'Guard-Forward'),
+  list('Forward', 'Forward-Guard', 'Guard-Forward'),
+  list('Center', 'Forward-Center', 'Center-Forward')
+)
+
+best_uncontested <- best_uncontested %>%
+  mutate(fg_fga = paste(fg, '/', fga, sep="")) %>%
+  relocate(fg_fga, .after=player_position) %>%
+  left_join(best_contested %>% select(player_name, team_name, contested_fg_pct), by=c("player_name", "team_name")) %>%
+  select(-fg, -fga) %>%
+  mutate(diff = open_fg_pct - contested_fg_pct)
+
+best_contested <- best_contested %>%
+  mutate(fg_fga = paste(fg, '/', fga, sep="")) %>%
+  relocate(fg_fga, .after=player_position) %>%
+  left_join(best_uncontested %>% select(player_name, team_name, open_fg_pct), by=c("player_name", "team_name")) %>%
+  select(-fg, -fga) %>%
+  mutate(diff = contested_fg_pct - open_fg_pct)
+
+best_difference <- best_uncontested %>%
+  arrange(desc(diff))
+
+cat('\n####', 'Open {.tabset}', '\n')
+count <- 1
+for(pos in c('All Players', 'Guard', 'Forward', 'Center')) {
+  cat('\n#####', pos, '\n')
+  p <- best_uncontested %>%
+          filter(player_position %in% pos_list[[count]])
+  print(knitr::kable(p[1:25,], col.names=c('Player Name', 'Team', 'Position',
+                                    'Open FGM/FGA', 'Open FG%', 
+                                    'Contested FG%', 'Difference'),
+                               align = "lclcccc") %>%
+          kable_styling(bootstrap_options = c("striped", "hover")))
+  cat('\n')
+  count <- count + 1
+}
+
+cat('\n####', 'Contested {.tabset}', '\n')
+count <- 1
+for(pos in c('All Players', 'Guard', 'Forward', 'Center')) {
+  cat('\n#####', pos, '\n')
+  p <- best_contested %>%
+          filter(player_position %in% pos_list[[count]])
+  print(knitr::kable(p[1:25,], col.names=c('Player Name', 'Team', 'Position',
+                                    'Contested FGM/FGA', 'Contested FG%', 
+                                    'Open FG%', 'Difference'),
+                               align = "lclcccc") %>%
+          kable_styling(bootstrap_options = c("striped", "hover")))
+  cat('\n')
+  count <- count + 1
+}
+
+cat('\n####', 'Difference {.tabset}', '\n')
+count <- 1
+for(pos in c('All Players', 'Guard', 'Forward', 'Center')) {
+  cat('\n#####', pos, '\n')
+  p <- best_difference %>%
+          filter(player_position %in% pos_list[[count]])
+  print(knitr::kable(p[1:25,], col.names=c('Player Name', 'Team', 'Position',
+                                    'Contested FGM/FGA', 'Contested FG%', 
+                                    'Open FG%', 'Difference'),
+                               align = "lclcccc") %>%
+          kable_styling(bootstrap_options = c("striped", "hover")))
+  cat('\n')
+  count <- count + 1
+}
+```
+
+## Conclusions
+
+T
