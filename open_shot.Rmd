@@ -39,7 +39,7 @@ Although the concept of an open look makes sense abstractly, it is harder to qua
 
 Instead, I decided to label these shots based on the wingspan of the closest defender. A defender's wingspan allows me to roughly express an 'arm length' away, which I define as the distance required for an uncontested look. According to this rule, every record where a shooter is more than half the closest defender's arm length away is an open shot, and the rest are contested. Although this definition is not perfect, it is a good kickoff point for investigating this idea with the data publicly available.
 
-## Obtaining the Data
+## Obtaining the Dataset
 
 The first step is to load all of the required R packages into the environment. For this project, I utilized the tidyverse, modelr, ggplot2, and kableExtra R packages.
 
