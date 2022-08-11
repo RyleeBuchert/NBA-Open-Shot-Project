@@ -580,7 +580,7 @@ best_contested <- shot_data %>%
 
 This table shows the top 25 players in field goal percentage in both open and contested spots. The table also includes the FG% for the opposite situation and the difference between the two. The most efficient shooters on this list all play in the backcourt so I included tabs for specific positions as well. Additionally, I included a "difference" tab which sorts the table by the biggest difference in Open-Contested FG%. Unfortunately, a few of the top players do not have enough records to count for Open FG% so those just appear as 'NA' values in the table.
 
-```{r, echo=FALSE, message=FALSE, results='asis'}
+```{r echo=FALSE, message=FALSE, results='asis'}
 pos_list <- list(
   as.list(unique(best_uncontested$player_position)),
   list('Guard', 'Forward-Guard', 'Guard-Forward'),
@@ -591,14 +591,16 @@ pos_list <- list(
 best_uncontested <- best_uncontested %>%
   mutate(fg_fga = paste(fg, '/', fga, sep="")) %>%
   relocate(fg_fga, .after=player_position) %>%
-  left_join(best_contested %>% select(player_name, team_name, contested_fg_pct), by=c("player_name", "team_name")) %>%
+  left_join(best_contested %>% select(player_name, team_name, contested_fg_pct), 
+            by=c("player_name", "team_name")) %>%
   select(-fg, -fga) %>%
   mutate(diff = open_fg_pct - contested_fg_pct)
 
 best_contested <- best_contested %>%
   mutate(fg_fga = paste(fg, '/', fga, sep="")) %>%
   relocate(fg_fga, .after=player_position) %>%
-  left_join(best_uncontested %>% select(player_name, team_name, open_fg_pct), by=c("player_name", "team_name")) %>%
+  left_join(best_uncontested %>% select(player_name, team_name, open_fg_pct), 
+            by=c("player_name", "team_name")) %>%
   select(-fg, -fga) %>%
   mutate(diff = contested_fg_pct - open_fg_pct)
 
@@ -612,7 +614,7 @@ for(pos in c('All Players', 'Guard', 'Forward', 'Center')) {
   p <- best_uncontested %>%
           filter(player_position %in% pos_list[[count]])
   print(knitr::kable(p[1:25,], col.names=c('Player Name', 'Team', 'Position',
-                                    'Open FGM/FGA', 'Open FG%', 
+                                    'Open FGM/FGA', 'Open FG%',
                                     'Contested FG%', 'Difference'),
                                align = "lclcccc") %>%
           kable_styling(bootstrap_options = c("striped", "hover")))
@@ -627,7 +629,7 @@ for(pos in c('All Players', 'Guard', 'Forward', 'Center')) {
   p <- best_contested %>%
           filter(player_position %in% pos_list[[count]])
   print(knitr::kable(p[1:25,], col.names=c('Player Name', 'Team', 'Position',
-                                    'Contested FGM/FGA', 'Contested FG%', 
+                                    'Contested FGM/FGA', 'Contested FG%',
                                     'Open FG%', 'Difference'),
                                align = "lclcccc") %>%
           kable_styling(bootstrap_options = c("striped", "hover")))
@@ -642,8 +644,8 @@ for(pos in c('All Players', 'Guard', 'Forward', 'Center')) {
   p <- best_difference %>%
           filter(player_position %in% pos_list[[count]])
   print(knitr::kable(p[1:25,], col.names=c('Player Name', 'Team', 'Position',
-                                    'Contested FGM/FGA', 'Contested FG%', 
-                                    'Open FG%', 'Difference'),
+                                    'Open FGM/FGA', 'Open FG%',
+                                    'Contested FG%', 'Difference'),
                                align = "lclcccc") %>%
           kable_styling(bootstrap_options = c("striped", "hover")))
   cat('\n')
