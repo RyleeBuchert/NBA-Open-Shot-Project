@@ -1,7 +1,7 @@
 ---
 title: "**NBA Open Shot Project**"
 author: "Rylee Buchert"
-date: "`r format(Sys.time(), '%Y-%m-%d')`"
+date: "8-6-2022"
 output: 
   html_document:
     theme: spacelab
@@ -17,9 +17,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 All data and code for this project can be found on my [GitHub](https://github.com/RyleeBuchert/NBA-Open-Shot-Project).
 
-The MLB has seen a considerable rise in the so-called "three true outcomes" due in large part to modern analytics. The heavy focus on advanced statistical metrics such as barrels, launch angle, and spin rate have led to a proliferation in home runs and strikeouts across the league. These new methods of characterizing the game provide analysts a way to evaluate players based on attributes likely to produce good results without relying solely on outcome-based statistics. 
+The MLB has seen a considerable rise in the so-called “three true outcomes” due in large part to modern analytics. The heavy focus on advanced statistical metrics such as barrels, launch angle, and spin rate have led to a proliferation in home runs and strikeouts across the league. These new methods of characterizing the game provide analysts a way to evaluate players based on attributes likely to produce good results without relying solely on outcome-based statistics.
 
 I have always been intrigued by the potential application of this idea in NBA stats. Under current practices, every event is treated equal in the scorebook. A rebound with no defenders nearby is weighed the same as a contested board. This beautiful pass by Josh Giddey to find a wide open Tre Mann is valued the same as KD handing Kyrie the ball before an unbelievable contested 3.
+
 
 <center>
 ![](img/giddey_assist.gif){width=45%} ![](img/kyrie_3.gif){width=45%}
@@ -27,17 +28,17 @@ I have always been intrigued by the potential application of this idea in NBA st
 
 &nbsp;
 
-Similar to how barrels/launch angle provides MLB analysts the ability to determine how likely it is for contact to turn into a hit, I hope to develop a metric to track which events translate into scoring with high probability. The principal idea behind this project is to develop some measure of 'openness' in basketball. Being able to differentiate when players are open provides a way to evaluate if a given shot/assist is more likely to result in a basket or how difficult it is to get a rebound.
+Similar to how barrels/launch angle lets MLB analysts determine how likely contact turns into a hit, I hope to develop a metric to track which events translate into scoring with high probability. The principal idea behind this project is to develop some measure of 'openness' in basketball. Being able to differentiate when players are open provides a way to evaluate if a given shot/assist is more likely to result in a basket or how difficult it is to get a rebound.
 
-I believe this concept has the most value in finding the best passers and rebounders in the league, as you can determine who finds the most open players in assists and comes away with the most contested rebounds. Moreover, isolating open shots gives a way to evaluate which teams/offensive schemes produce the most uncontested shots and the strength of defenses in preventing easy looks. Unfortunately, there is not a wide breadth of public data available for investiating this idea. Although all NBA teams maintain a database of game tracking information through the SportsVU system, this data is not generally accessible to the public. The good news is that one season's game tracking data is posted online, conveniently available on [Kaggle](https://www.kaggle.com/datasets/dansbecker/nba-shot-logs).
+I believe this concept has the most value in finding the best passers and rebounders in the league, as you can determine who finds the most open players in assists and comes away with the most contested rebounds. Moreover, isolating open shots allows one to evaluate which teams/offensive schemes produce the most uncontested shots and the strength of defenses in preventing easy looks. Unfortunately, there is not a wide breadth of public data available for investigating this idea. Although all NBA teams maintain a database of game tracking information through the SportsVU system, this data is not generally accessible to the public. The good news is that one season's game tracking data is posted online, conveniently available on [Kaggle](https://www.kaggle.com/datasets/dansbecker/nba-shot-logs).
 
-This dataset contains the records of over 100,000 shots taken during the 2014-15 NBA season, including information about where the shot was taken, game time, and who was the closest defender. Most importantly, each shot has a measure of how far the closest the closest defender was away from the shooter, providing a way to quantify if each shot had a contesting defender. Although there is no way to analyze assists/rebounds with this dataset, looking at shots still produces some interesting results and provides a good starting point for investigating this concept.
+This dataset contains the records of over 100,000 shots taken during the 2014-15 NBA season, including information about where the shot was taken, game time, and who was the closest defender. Most importantly, each record measures how far the nearest defender was away from the shooter, providing a way to quantify if each shot had a contesting defender. Although there is no way to analyze assists/rebounds with this dataset, looking at shots produces some intriguing results and provides a good starting point for investigating this concept.
 
 ### What's an "Open" Shot?
 
-Although the concept of an open look makes sense abstractly, it is harder to quantitatively define for data labeling. Ideally, this would include every shot where the shooter is out of reach of the nearest defender. Yet, this idea can vary considerably depending on the defender and court positioning. This makes it sub-optimal to determine a set "circle", say 3~5 feet around a shooter, that defines their open shot zone.
+Although the concept of an open look makes sense abstractly, it is harder to quantitatively define for data labeling. Ideally, this would include every shot where the shooter is out of reach of the nearest defender. Yet, this idea can vary considerably depending on the defender and court positioning. This makes it sub-optimal to determine a set "circle," say 3~5 feet around a shooter, that defines their open shot zone.
 
-Instead, I decided to label these shots based on the wingspan of the closest defender. A defender's wingspan allows me to roughly express an 'arm length' away, which I define as the distance required for an uncontested look. According to this rule, every record where a shooter is more than half the closest defender's arm length away is an open shot, and the rest are contested. Although this definition is not perfect, it is a good kickoff point for investigating this idea with the data publicly available.
+Instead, I decided to label these shots based on the wingspan of the closest defender. A defender's wingspan allows me to roughly express an 'arm's length' away, which I define as the distance required for an uncontested look. According to this rule, every record where a shooter is more than half the closest defender's arm length away is an open shot, and the rest are contested. Although this definition is not perfect, it is a good kickoff point for investigating this idea with the data publicly available.
 
 ## Obtaining the Dataset
 
@@ -50,7 +51,7 @@ library(ggplot2)
 library(kableExtra)
 ```
 
-Player wingspan data is not as readily available online as I initially thought it would be. I was only able to find one [website](https://www.nbasavant.com/) which contained wingspan data for the player IDs included in the dataset. Using Python and the BeautifulSoup package, I wrote a quick web scraping function to return the wingspan for a player when given their ID.
+Player wingspan data is not as readily available online as I initially thought. I could only find one [website](https://www.nbasavant.com/) which contained wingspan data for the player IDs included in the dataset. Using Python and the BeautifulSoup package, I wrote a quick web scraping function to return the wingspan for a player when given their ID.
 
 ```{python add-wingspan, error=TRUE, include=TRUE, eval=FALSE}
 
@@ -75,7 +76,7 @@ def get_wingspan(player_id):
         return('NA')
 
 # Load shot dataset and apply scraping function
-shot_data = pd.read_csv('shot_data.csv')
+shot_data = pd.read_csv('data/shot_data.csv')
 shot_data['closest_def_wingspan'] = shot_data.apply(lambda row: get_wingspan(row['closest_defender_id']), axis=1)
 shot_data.to_csv('shot_data.csv')
 
@@ -86,16 +87,16 @@ Unfortunately, this only returned usable data for some of the players in the sho
 ```{r analyse-shot-data, message=FALSE}
 
 # Load shot data
-shot_data <- read_csv('shot_data.csv')
+shot_data <- read_csv('data/shot_data.csv')
 
 # Count the number of available wingspan rows
 print(sum(!is.na(shot_data$closest_def_wingspan)) / nrow(shot_data))
 
 ```
 
-Only a little over two-thirds of the records contain wingspan data after scraping. To fill in the remaining rows, I decided to make predictions for player wingspans based on their height. Although height is not a perfect determinant of wingspan, they are strongly correlated which provides a good way to make use of the unavailable records. Height data is more easily available online and can be used in a regression to predict wingspan with a fairly high degree of accuracy.
+Only a little over two-thirds of the records contain wingspan data after scraping. To fill in the remaining rows, I decided to make predictions for player wingspans based on their height. Although height is not a perfect determinant of wingspan, they are strongly correlated, providing a good way to use the unavailable records. Height data is more readily available online and can be used in a regression to predict wingspan with a reasonably high degree of accuracy.
 
-To obtain player heights, I wrote another BeautifulSoup scraping function which scraped height from [NBA's player pages](https://www.nba.com/players). I also collected each player's position in the function for use later in this analysis. This code snippet produces a player information CSV file which then joined with the shot data after creation.
+To obtain player heights, I wrote another BeautifulSoup scraping function which scraped height from [NBA's player pages](https://www.nba.com/players). I also collected each player's position in the function for use later in this analysis. This code snippet produces a player information CSV file which is then joined with the shot data after creation.
 
 ```{python add-height-pos, error=TRUE, include=TRUE, eval=FALSE}
 
@@ -124,7 +125,7 @@ def get_height_position(player_id):
     return (height, position)
 
 # Load shot data and get all unique player id's 
-shot_data = pd.read_csv('shot_data.csv')
+shot_data = pd.read_csv('data/shot_data.csv')
 shooter_list = shot_data.player_id.unique().tolist()
 defender_list = shot_data.closest_defender_id.unique().tolist()
 player_df = pd.DataFrame(set(shooter_list + defender_list)).rename(columns={0: 'player_id'})
@@ -141,7 +142,7 @@ Now to join the player info sheet with the shot data:
 ```{r join-player-data, message=FALSE}
 
 # Add shooter/defender height and position to shot data
-player_info <- read_csv('2015_player_info.csv')
+player_info <- read_csv('data/2015_player_info.csv')
 
 shot_data <- shot_data %>%
   left_join(player_info, by=c("closest_defender_id"="player_id")) %>%
@@ -181,7 +182,7 @@ rm(available_data, na_data)
 
 ```
 
-The final step in preparing the dataset is to add some more fields and clean up the data for later analysis. This is not very relevant to the report so I did not include the code in here. I converted defender distance to inches, added team codes for home/away, dropped a few unneeded column, and added a game id that matches Basketball-Reference's data for merging purposes later in this report.
+The final step in preparing the dataset is adding a few more fields and cleaning up the data for later analysis. This is not very relevant to the report, so I did not include the code here. I converted defender distance to inches, added home/away team codes, dropped a few unneeded column, and added a game id that matches Basketball-Reference's data for future merging purposes.
 
 ```{r clean-data, echo=FALSE}
 
@@ -248,7 +249,7 @@ shot_data <- shot_data %>%
 
 ### Adding the "Open" Dummy
 
-With the dataset fully prepared, it is time to add the important column: open_shot. This was created by mutating the dataset with a dummy variable that takes a value of 1 when a shooter is more than half the wingspan of the closest defender away, and 0 otherwise.
+With the dataset fully prepared, it is time to add the important column: open_shot. This field is created by mutating the dataset with a dummy variable which takes a value of 1 when a shooter is more than half the wingspan of the closest defender away, and 0 otherwise.
 
 ```{r label-shots}
 
@@ -261,9 +262,9 @@ shot_data <- shot_data %>%
 
 ## Investigating the Data
 
-The shot dataset now includes over 125,000 individual shots from the 2014-15 season. According to Sports-Reference's [Stathead](https://stathead.com/all/), there were just over 200,000 total shots taken during that season, meaning we have roughly 60% of the total data from the season. This sample is more than enough for this report even though we won't have perfect information from that season. 
+The shot dataset now includes over 125,000 individual shots from the 2014-15 season. According to Sports-Reference's [Stathead](https://stathead.com/all/), there were just over 200,000 total shots taken during that season, meaning we have roughly 60% of the entire data from the season. This sample is more than enough for this report, even though we won't have perfect information from that season. 
 
-Looking at the now-labelled data, about 46% of shots are contested while 54% are considered open. This is a great split for looking at performance trends for team offenses/defenses and individual players.
+Looking at the now-labeled data, about 46% of shots are contested, while 54% are considered open. This is an excellent split for looking at performance trends for team offenses/defenses and individual players.
 
 ```{r summarize-shot-data}
 
@@ -279,18 +280,18 @@ shot_data %>%
 
 ### Team Offense {.tabset}
 
-First I'm going to look at team statistics to examine how open shots correlate with offensive/defensive performance. Since the shot data only includes a portion of total shots from the 2015 season, it's difficult to determine per game stat totals. Using Stathead, I collected the total number of field goals attempted by each team for all games during the season. Knowing how many shots were attempted allows me to normalize any data created and obtain predictions for per game stats.
+First, I will examine team statistics to learn how open shots correlate with offensive/defensive performance. Since the shot data only includes a portion of total shots from the 2015 season, it's challenging to determine per-game stat totals. Using Stathead, I collected the total number of field goals attempted by each team for all games during the season. Knowing how many shots were attempted allows me to normalize any data created and obtain predictions for per-game stats.
 
 ```{r get-boxscore-data, message=FALSE}
 
 # Get boxscore data from BBRef
-boxscore_data <- read_csv("2015_games.csv") %>%
+boxscore_data <- read_csv("data/2015_games.csv") %>%
   select(game_id, opp_team_id, fg, fga) %>%
   rename(fga_total = fga, fg_total = fg)
 
 ```
 
-In the following chunk I create a game summary table which includes field goals made/attempted from both the original shot data and the Stathead totals, the number of open shots, and percent of total shots that are uncontested for each game in a team's schedule. The Stathead data allows me to calculate the predicted number of open looks by normalizing shot data to game totals.
+In the following chunk, I create a game summary table that includes field goals made/attempted from both the original shot data and the Stathead totals, the number of open shots, and the percent of total shots that are uncontested for each game in a team's schedule. The Stathead data allows me to calculate the predicted number of open looks by normalizing shot data to game totals.
 
 ```{r offense-summary, message=FALSE}
 
@@ -309,7 +310,7 @@ league_offense_summary <- shot_data %>%
 
 ```
 
-Using the summary table I can produce some statistics by team offenses. The following tables highlight the teams with the highest percent of open looks and most total uncontested shots per game. I also added a fields for offensive rating, eFG%, and margin of victory.
+Using the summary table, I can produce some statistics by team offenses. The following tables highlight the teams with the highest percent of open looks and most total uncontested shots per game. I also added fields for offensive rating, eFG%, and margin of victory.
 
 #### % of Shots Open
 
@@ -322,7 +323,7 @@ league_offense_summary %>%
     open_shot_pct = mean(open_shot_pct)
   ) %>%
   arrange(desc(open_shot_pct)) %>%
-  left_join(read_csv("2015_team_season.csv") %>% 
+  left_join(read_csv("data/2015_team_season.csv") %>% 
     select(Tm, ORtg, eFG, margin), by=c("bbr_team_id"="Tm"))
 
 ```
@@ -338,19 +339,19 @@ league_offense_summary %>%
     open_shots_pg = mean(pred_open_shots)
   ) %>%
   arrange(desc(open_shots_pg)) %>%
-  left_join(read_csv("2015_team_season.csv") %>% 
+  left_join(read_csv("data/2015_team_season.csv") %>% 
     select(Tm, ORtg, eFG, margin), by=c("bbr_team_id"="Tm"))
 
 ```
 
 ### {.unlisted .unnumbered}
 
-These stats are interesting to consider but don't explain much about how open looks contribute to offensive success. Using some more data from Stathead, the following graph shows the relationship between open shot percentage and offensive rating. 
+These stats are interesting to consider but don't explain much about how open looks contribute to offensive success. Using more data from Stathead, the following graph shows the relationship between open shot percentage and offensive rating. 
 
 ```{r plot-ortg, fig.align='center', message=FALSE}
 
 # Get offensive rating data by team
-offensive_rating <- read_csv("2015_team_season.csv") %>%
+offensive_rating <- read_csv("data/2015_team_season.csv") %>%
   select(Tm, eFG, ORtg) %>%
   rename(bbr_team_id = Tm)
 
@@ -376,7 +377,7 @@ ggplot(data=os_pct_offense, mapping=aes(x=ORtg, y=open_shot_pct, color=eFG)) +
 
 ```
 
-This graph shows that, generally, teams with a higher percent of open looks score more efficiently. This relationship is not extraordinarily strong though; only 6 of the top 12 teams in terms of open shot percentage rank in the top 12 of offensive rating. Even though team offenses may generate uncontested shots at an efficient rate, that does not translate to ORtg if they can't make the shots. A good example of this is the New York Knicks. Despite ranking 7th in open shot percentage, the Knicks ranked 29th in offensive rating. Their very low field goal rate makes it hard to score despite having many high-percentage shot opportunities.
+This graph shows that teams with a higher percent of open looks score more efficiently. However, this relationship is not extraordinarily strong; only 6 of the top 12 teams in terms of open shot percentage rank in the top 12 offensive rating. Even though team offenses may generate uncontested shots at an efficient rate, that does not translate to ORtg if they can't make the shots. A good example of this is the New York Knicks. Despite ranking 7th in open shot percentage, the Knicks ranked 29th in offensive rating. Their low field goal rate makes it hard to score despite many high-percentage shot opportunities.
 
 ### Team Defense {.tabset}
 
@@ -413,7 +414,7 @@ league_defense_summary %>%
     opp_open_shot_pct = mean(opp_open_shot_pct)
   ) %>%
   arrange(opp_open_shot_pct) %>%
-  left_join(read_csv("2015_team_season.csv") %>% 
+  left_join(read_csv("data/2015_team_season.csv") %>% 
     select(Tm, DRtg, opp_eFG, margin), by=c("team"="Tm"))
 
 ```
@@ -429,7 +430,7 @@ league_defense_summary %>%
     opp_open_shot_pg = mean(pred_opp_open_shots)
   ) %>%
   arrange(opp_open_shot_pg) %>%
-  left_join(read_csv("2015_team_season.csv") %>% 
+  left_join(read_csv("data/2015_team_season.csv") %>% 
     select(Tm, DRtg, opp_eFG, margin), by=c("team"="Tm"))
 
 ```
@@ -441,7 +442,7 @@ Plotting this data against team defensive rating and opponent eFG%, a stronger r
 ```{r plot-drtg, fig.align='center', message=FALSE}
 
 # Get defensive rating for each team
-defensive_rating <- read_csv("2015_team_season.csv") %>%
+defensive_rating <- read_csv("data/2015_team_season.csv") %>%
   select(Tm, opp_eFG, DRtg) %>%
   rename(bbr_team_id = Tm)
 
@@ -466,11 +467,11 @@ ggplot(data=os_pct_defense, mapping=aes(x=DRtg, y=opp_open_shot_pct, color=opp_e
 
 ```
 
-Opposed to the plot from above, open shot percentage allowed is significantly more correlated to defensive rating. 9 of the top 12 open shot percentage defenses ranked in the top 12 of defensive rating. This highlights how defensive structures which prevent easy looks correlate strongly to success in preventing scoring. 
+As opposed to the plot above, open shot percentage allowed is significantly more correlated to defensive rating. 9 of the top 12 open shot percentage defenses ranked in the top 12 of defensive rating. This highlights how defensive structures which prevent easy looks correlate strongly to success in preventing scoring. 
 
 ### Individual Players {.tabset}
 
-To finish out this report I'm going to take a look at some stats for individual players. In the following chunk I generate a summary table with a row for each player in the shot dataset. This table includes each players field goals made/attempted, the total number of open shots, and their percent of total field goals that were uncontested.
+To finish out this report, I'm going to take a look at some stats for individual players. In the following chunk, I generate a summary table with a row for each player in the shot dataset. This table includes each player's field goals made/attempted, the total number of open shots, and their percent of total field goals that were uncontested.
 
 ```{r shooting-summary, message=FALSE}
 
@@ -488,7 +489,7 @@ shooter_summary <- shot_data %>%
   rename(pct_shots_open = open_shot_pct)
 ```
 
-This summary table can be used to find the players with the most total open shots in the league and those with the highest percent of open shots. The table shows the top players for both of those stats (descending) and has tabs to view for each position. These results are not particularly useful but do highlight the players who tend to see open looks most often. 
+This summary table can be used to find the players with the most total open shots in the league and those with the highest percent of open shots. The table shows the top players for both of those stats (descending) and has tabs for each player position. These results are not particularly useful but highlight the players who most often see open looks. 
 
 #### Total Open Shots {.tabset}
 
@@ -548,7 +549,7 @@ cat('\n')
 
 ### Open/Contested FG% {.tabset}
 
-The more helpful interpretation from this data comes from a player's field goal percent in both open and contested scenarios. Knowing which players shoot significantly better when open can help guide offensive play making to put them in those situations. For some players there's over a 15% difference in their field goal percentage in open looks compared to contested situations. Offenses could lose out on many points if they do not structure their plays in a way that takes advantage of this. Moreover, if certain players shoot efficiently in both open and contested situations, then it is less important to design plays around getting them space. The following chunk constructs summary tables for all players and calculates their FG% in both cases, this is then used to construct the leaderboard.
+The more helpful interpretation of this data comes from a player's field goal percentage in both open and contested scenarios. Knowing which players shoot significantly better when open can help guide offensive playmaking to put them in those situations. For some players, there's over a 15% difference in their field goal percentage in open looks compared to contested cases. Offenses could lose out on many points if they do not structure their plays in a way that takes advantage of this. Moreover, suppose certain players shoot efficiently in both open and contested situations. In that case, it is less critical to design plays around getting them space. The following chunk constructs summary tables for all players and calculates their FG% in both cases; this is then used to construct the leaderboard.
 
 ```{r shooting-uncontested, message=FALSE, warning=FALSE, results='asis'}
 
@@ -578,7 +579,7 @@ best_contested <- shot_data %>%
 
 ```
 
-This table shows the top 25 players in field goal percentage in both open and contested spots. The table also includes the FG% for the opposite situation and the difference between the two. The most efficient shooters on this list all play in the backcourt so I included tabs for specific positions as well. Additionally, I included a "difference" tab which sorts the table by the biggest difference in Open-Contested FG%. Unfortunately, a few of the top players do not have enough records to count for Open FG% so those just appear as 'NA' values in the table.
+This table shows the top 25 players in field goal percentage in both open and contested spots. The table also includes the FG% for the opposite situation and the difference between the two. The most efficient shooters on this list all play in the backcourt, so I also included tabs for specific positions. Additionally, I included a "difference" tab which sorts the table by the most significant difference in Open-Contested FG%. Unfortunately, a few of the top players do not have enough records to count for Open FG%, so those just appear as 'NA' values in the table.
 
 ```{r echo=FALSE, message=FALSE, results='asis'}
 pos_list <- list(
@@ -655,6 +656,6 @@ for(pos in c('All Players', 'Guard', 'Forward', 'Center')) {
 
 ## Conclusions
 
-The intangible nature of basketball makes it difficult to create stats that accurately reflect player/team value. In this project, I introduced a new stat with the goal of differentiating between shots and offensive/defensive production. Similar to professional baseball, the NBA seems like the next frontier for advanced metrics which fundamentally change strategy and decision-making.
+Similar to professional baseball, the NBA seems like the next frontier for advanced metrics that fundamentally change strategy and decision-making. The intangible nature of the game makes it challenging to create stats that accurately reflect player/team value. In this project, I introduced a new stat to help differentiate between shots and offensive/defensive production.h
 
-In future projects, I hope to delve into this topic further by analyzing events other than just shooting. As I stated earlier, I believe this concept is more applicable to rebounding/assists but those events are impossible to analyze with the dataset utilized. The [raw tracking data](https://github.com/linouk23/NBA-Player-Movements) from the 2015 season is available online but does not contain labels for any of the events. It would be intriguing to label the data more closely in order to analyze shooting in conjunction with assists/rebounds.
+In future projects, I hope to delve into this topic further by analyzing events other than just shooting. As I stated earlier, I believe this concept is more applicable to rebounding/assists, but those events are impossible to analyze with the dataset utilized. The [raw tracking data](https://github.com/linouk23/NBA-Player-Movements) from the 2015 season is available online but does not contain labels for any of the events. It would be intriguing to label the data more closely in order to analyze shooting in conjunction with assists/rebounds.
